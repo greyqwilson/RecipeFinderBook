@@ -1,0 +1,40 @@
+{
+  "recipes": [
+    {
+      "name": "Peanut butter and jelly sandwich",
+      "ingredients": [
+        "peanut butter",
+        "fruit jelly",
+        "bread"
+      ],
+      "img": "pbj.png",
+      "tags": [
+        "sandwich",
+        "simple"
+      ],
+      "prepTime": 1.0,
+      "cookTime": 0,
+      "instructions": "Grab two slices of bread. On one slice, slather peanut butter on a single side. On the other slide, slather jelly onto a single side. Place the sides together so that the peanut butter and jelly touch"
+    },
+    {
+      "name": "Spaghetti",
+      "ingredients": [
+        "pasta",
+        "tomato sauce",
+        "garlic",
+        "olive oil",
+        "salt",
+        "basil"
+      ],
+      "img": "spaghetti.png",
+      "tags": [
+        "starch",
+        "italian",
+        "pasta"
+      ],
+      "prepTime": 60.0,
+      "cookTime": 15,
+      "instructions": "Do this and that"
+    }
+  ]
+}
