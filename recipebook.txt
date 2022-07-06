@@ -12,8 +12,8 @@
         "sandwich",
         "simple"
       ],
-      "prepTime": 1.0,
-      "cookTime": 0,
+      "prepTime": "2 minutes",
+      "cookTime": "0 minutes",
       "instructions": "Grab two slices of bread. On one slice, slather peanut butter on a single side. On the other slide, slather jelly onto a single side. Place the sides together so that the peanut butter and jelly touch"
     },
     {
@@ -32,9 +32,46 @@
         "italian",
         "pasta"
       ],
-      "prepTime": 60.0,
-      "cookTime": 15,
+      "prepTime": "1 hour",
+      "cookTime": "15 minutes",
       "instructions": "Do this and that"
+    },
+    {
+      "name": "Basic salad",
+      "ingredients": [
+        "romaine lettuce",
+        " vinegar",
+        " oil",
+        " lemon",
+        " salt",
+        " pepper"
+      ],
+      "img": "salad.png",
+      "tags": [
+        "vegetarian",
+        " healthy",
+        " light"
+      ],
+      "prepTime": "10 minutes",
+      "cookTime": "none",
+      "instructions": "Dressing:\n - In a small bowl mix together 6 tbsp of oil,\n   a 2 tbsp of vinegar, and a 2 tbsp of lemon \n   juice.\n\nLetuce:\n\n - Cut off base of lettuce to form a bunch. \n - Cut the bunch to form long strips of lettuce.\n\nIn a large bowl place the cut lettuce and drizzle\nover the dressing. Crack fresh pepper and your\nfavorite salt over it. With two forks, your hand,\nor tongs, fluff the ingredients until the \ndressing evenly coats the lettuce.\nServe with your favorite toppings.\n"
+    },
+    {
+      "name": "Grilled cheese",
+      "ingredients": [
+        "cheese",
+        " bread",
+        " butter"
+      ],
+      "img": "grilledcheese.png",
+      "tags": [
+        "tasty",
+        " unhealthy",
+        " comfort"
+      ],
+      "prepTime": "2 minutes",
+      "cookTime": "4 minutes",
+      "instructions": "Take two slices of bread and slap them together\nand bam grilled cheese\n"
     }
   ]
 }

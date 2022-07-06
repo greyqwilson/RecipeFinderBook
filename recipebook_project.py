@@ -5,10 +5,14 @@
 from functools import partial
 from json import *
 import json
+import random
+import string
+from textwrap import wrap
 from tkinter import *
 from tkinter import ttk
 import tkinter
 from tkinter.scrolledtext import ScrolledText
+from tokenize import String
 from PIL import Image as PilImage
 from PIL import ImageTk
 
@@ -41,86 +45,264 @@ class SearchTabs(ttk.Frame):
         self.notebook.add(self.recSearchFrame, text="Search Recipe")
         
 
+class RS_ImageBox(ttk.Frame):
+    def __init__(self, recipe, master=None):
+        super().__init__(master)
+        self.imgPath = StringVar(value=DEFAULT_IMG_PATH)
+        self.defaultImgPath = DEFAULT_IMG_PATH
+        self.recipe = recipe
+        #Image variables to handle opening, resizing, widget
+        try:
+            openImgVar = PilImage.open(self.imgPath.get())
+        except FileNotFoundError:
+            print("Failed to locate default image 'default.png'")
+            return
+        
+        openImgVar.thumbnail((400,400))
+        self.imgTkVar = ImageTk.PhotoImage(openImgVar)
+        self.img = Label(self, image=self.imgTkVar)
+        self.img.grid(column=0, row=0)
+        self.grid(column=1, row=1)
+    
+    def UpdateImage(self):
+        self.imgPath.set(self.recipe.img)
+        if self.imgPath.get() not in ["", " "]:
+            try:
+                openImgVar = PilImage.open(self.imgPath.get())
+            except FileNotFoundError:
+                openImgVar = PilImage.open(DEFAULT_IMG_PATH)
+                print("Failed to find recipe image. Using default")
+            openImgVar.thumbnail((400,400))
+            self.imgTkVar = ImageTk.PhotoImage(openImgVar)
+            self.img = Label(self, image=self.imgTkVar, anchor=NW).grid(column=0, row=0)
+        else:
+            print("No image path entered. Skipping")
+
+class RS_RecipePreview(ttk.Frame):
+    def __init__(self, recipe, master=None):
+        super().__init__(master, name="!rs_recipepreview")
+        # self.nameLabel = Label(self, text="Name")
+        # self.imgLabel = Label(self, text="Image")
+        # self.ingredientsLabel = Label(self, text="Ingredients")
+        # self.instructionsLabel = Label(self, text="Instructions")
+        # self.prepTimeLabel = Label(self, text="Prep time")
+        # self.cookTimeLabel = Label(self, text="Cook time")
+        # self.tagsLabel = Label(self, text="Tags")
+        self.recipe = recipe
+        self.name = StringVar(value=" ")
+        self.ingredients = StringVar(value=" ")
+        self.instructions = StringVar(value=" ")
+        self.prepTime = StringVar(value=" ")
+        self.cookTime = StringVar(value=" ")
+        self.tags = StringVar(value=" ")
+
+        self.imageBox = RS_ImageBox(master=self, recipe=recipe)
+
+        self.infoFrame = Frame(self)
+        self.namePreview = Label(self.infoFrame, textvariable=self.name)
+        self.ingredientsPreview = Label(self.infoFrame, textvariable=self.ingredients, wraplength=200, justify= CENTER, height=10)
+        self.instructionsPreview = Label(self.infoFrame, textvariable=self.instructions, wraplength=200, justify=LEFT, height=10)
+        self.prepTimePreview = Label(self.infoFrame, textvariable=self.prepTime)
+        self.cookTimePreview = Label(self.infoFrame, textvariable=self.cookTime)
+        self.tagsPreview = Label(self.infoFrame, textvariable=self.tags, wraplength=200, justify=CENTER, height=10)
+
+        self.imageBox.grid(column=1, row=1)
+        self.infoFrame.grid(column=2, row=1)
+        
+        self.namePreview.grid(column=0, row=1)
+        self.ingredientsPreview.grid(column=0, row=2)
+        self.instructionsPreview.grid(column=0, row=3)
+        self.prepTimePreview.grid(column=0, row=4)
+        self.cookTimePreview.grid(column=0, row=5)
+        self.tagsPreview.grid(column=0, row=6)
+
+    def UpdateIngPreview(self):
+        ingString = ""
+        for ing in self.recipe.ingredients:
+            ingString += "> " + ing + "\t"
+        self.ingredients.set(ingString)
+
+    def UpdateTagPreview(self):
+        tagString = ""
+        for tag in self.recipe.tags:
+            tagString += tag + "; "
+        self.tags.set(tagString)
+
+    def UpdatePreview(self):
+        #print("RS_RecipePreview.UpdatePreview sees this recipe name:", self.recipe.name)
+        self.name.set(self.recipe.name)
+        self.UpdateIngPreview()
+        self.instructions.set(self.recipe.instructions)
+        self.prepTime.set("Prep time:" + self.recipe.prepTime)
+        self.cookTime.set("Cook time:" + self.recipe.cookTime)
+        self.UpdateTagPreview()
+        self.imageBox.UpdateImage()
+
+
+class RS_InstructionsEntry(ttk.Frame):
+    def __init__(self, recipe, master=None):
+        super().__init__(master)
+        self.recipe = recipe
+        self.entryFrame = Frame(self, width=1, height=1)
+        self.instructionsBox = ScrolledText(self.entryFrame, width=50, height=20) #maybe just use text
+        self.instructionsLabel = Label(self, text="Instructions")
+        self.instructionsButton = Button(self, text="Change", command=self.Change)
+        #Grids
+        self.entryFrame.grid(column=0, row=1)
+        self.instructionsLabel.grid(column=0, row=0)
+        self.instructionsBox.grid(column=0, row= 0)
+        self.instructionsButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        self.recipe.instructions = self.instructionsBox.get(1.0, END)
+
 class RS_ImageEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
-        self.imgBox = Label(self)
+        self.recipe = recipe
+        self.imgBox = Entry(self)
         self.imgLabel = Label(self, text="Image path")
-        self.imgButton = Button(self, text="Change")
+        self.imgButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.imgLabel.grid(column=0, row=0)
         self.imgBox.grid(column=0, row= 1)
         self.imgButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        self.recipe.img = self.imgBox.get()
         
 
 class RS_NameEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
+        self.recipe = recipe
         self.nameBox = Entry(self)
         self.nameLabel = Label(self, text="Name")
-        self.nameButton = Button(self, text="Change")
+        self.nameButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.nameLabel.grid(column=0, row=0)
         self.nameBox.grid(column=0, row= 1)
         self.nameButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        self.recipe.name = self.nameBox.get()
 
 
 class RS_IngredientEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
+        self.recipe = recipe
         self.ingredientsBox = Entry(self)
         self.ingredientsLabel = Label(self, text="Ingredients")
-        self.ingredientsButton = Button(self, text="Change")
+        self.ingredientsButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.ingredientsLabel.grid(column=0, row=0)
         self.ingredientsBox.grid(column=0, row= 1)
         self.ingredientsButton.grid(column=1, row=1)
 
+    #     self.ingredientsBox.bind("<Key>", self.callback)
+    
+    # def callback(self, event):
+    #     if event.char in string.ascii_letters:
+    #         event.widget.insert(END, random.randint(2, 4))
+    #         return "break"
+
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        entries = self.ingredientsBox.get().split(sep=',')
+        for entry in entries:
+            if entry not in self.recipe.ingredients and entry != string.whitespace:
+                self.recipe.ingredients.append(entry.lower())
+                
+
 class RS_PrepTimeEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
+        self.recipe = recipe
         self.preptimeBox = Entry(self)
         self.preptimeLabel = Label(self, text="Prep time")
-        self.preptimeButton = Button(self, text="Change")
+        self.preptimeButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.preptimeLabel.grid(column=0, row=0)
         self.preptimeBox.grid(column=0, row= 1)
         self.preptimeButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        self.recipe.prepTime = self.preptimeBox.get()
 
 class RS_CookTimeEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
+        self.recipe = recipe
         self.cooktimeBox = Entry(self)
         self.cooktimeLabel = Label(self, text="Cook time")
-        self.cooktimeButton = Button(self, text="Change")
+        self.cooktimeButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.cooktimeLabel.grid(column=0, row=0)
         self.cooktimeBox.grid(column=0, row= 1)
         self.cooktimeButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        self.recipe.cookTime = self.cooktimeBox.get()
 
 class RS_TagsEntry(ttk.Frame):
     def __init__(self, recipe, master=None):
         super().__init__(master)
+        self.recipe = recipe
         self.tagsBox = Entry(self)
         self.tagsLabel = Label(self, text="Tags")
-        self.tagsButton = Button(self, text="Change")
+        self.tagsButton = Button(self, text="Change", command=self.Change)
         #Grids
         self.tagsLabel.grid(column=0, row=0)
         self.tagsBox.grid(column=0, row= 1)
         self.tagsButton.grid(column=1, row=1)
+    
+    def PreviewChange(self):
+        print("blah")
+
+    def Change(self):
+        entries = self.tagsBox.get().split(sep=',')
+        print("Tags:", entries)
+        for entry in entries:
+            #Check for duplicates
+            if entry not in self.recipe.tags:
+                entry = entry.rstrip()
+                self.recipe.tags.append(entry.lower())
 
 class RS_EditSuite(ttk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
+    def __init__(self, recipeBook, master=None):
+        super().__init__(master, name="!rs_editsuite")
         #Recipe book passed on creation
-        self.recipeBook = self.master.recipeBook
+        self.recipeBook = recipeBook
         self.newRecipe = Recipe("New Recipe")
-        self.imgEntry = RS_ImageEntry(master=self, recipe=self.newRecipe)
-        self.nameEntry = RS_NameEntry(master=self, recipe=self.newRecipe)
-        self.ingredientsEntry = RS_IngredientEntry(master=self, recipe=self.newRecipe)
-        self.preptimeEntry = RS_PrepTimeEntry(master=self, recipe=self.newRecipe)
-        self.cooktimeEntry = RS_CookTimeEntry(master=self, recipe=self.newRecipe)
-        self.tagsEntry = RS_TagsEntry(master=self, recipe=self.newRecipe)
+
+        self.innerFrame = Frame(self)
+        self.imgEntry = RS_ImageEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.nameEntry = RS_NameEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.ingredientsEntry = RS_IngredientEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.preptimeEntry = RS_PrepTimeEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.cooktimeEntry = RS_CookTimeEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.tagsEntry = RS_TagsEntry(master=self.innerFrame, recipe=self.newRecipe)
+        self.instructionsEntry = RS_InstructionsEntry(master=self, recipe=self.newRecipe)
+        self.changeAllButton = Button(master=self, text="Change/update all", command=self.ChangeAll)
+        self.saveRecipeButton = Button(master=self, text="Save recipe", command=self.SaveRecipe)
 
         self.imgEntry.grid(column=0, row=0)
         self.nameEntry.grid(column=0, row=1)
@@ -128,6 +310,35 @@ class RS_EditSuite(ttk.Frame):
         self.preptimeEntry.grid(column=0, row=3)
         self.cooktimeEntry.grid(column=0, row=4)
         self.tagsEntry.grid(column=0, row=5)
+        self.changeAllButton.grid(column=0, row=6)
+        self.saveRecipeButton.grid(column=0, row=7)
+
+        self.innerFrame.grid(column=0, row=0)
+        self.instructionsEntry.grid(column=1, row=0)
+
+        
+
+    def UpdatePreview(self):
+        self.master.children['!rs_recipepreview'].UpdatePreview()
+        #print("RS_EditSuite.UpdatePreview sees this recipe name:", self.newRecipe.name)
+
+    def ChangeAll(self):
+        self.nameEntry.Change()
+        self.ingredientsEntry.Change()
+        self.instructionsEntry.Change()
+        self.preptimeEntry.Change()
+        self.cooktimeEntry.Change()
+        self.tagsEntry.Change()
+        self.imgEntry.Change()
+
+        self.UpdatePreview()
+
+    def SaveRecipe(self):
+        self.recipeBook.recipes.append(self.newRecipe)
+        self.recipeBook.SaveRecipeFile()
+        self.master.master.children['!mainwindow'].children['!notebook'].children['!frame'].children['!ingredientsearchbox'].UpdateButtons()
+        
+        
         
 
 class RecipeStationWindow(Toplevel):
@@ -137,8 +348,11 @@ class RecipeStationWindow(Toplevel):
         self.minsize(800,600)
         self.title("Recipe station")
         self.recipeBook = recipeBook
-        self.editAddSuite = RS_EditSuite(self)
+        #self.innerFrame = Frame(self)
+        self.editAddSuite = RS_EditSuite(master=self, recipeBook=self.recipeBook)
+        self.preview = RS_RecipePreview(master=self, recipe=self.children['!rs_editsuite'].newRecipe)
         self.editAddSuite.grid(column=0, row=0)
+        self.preview.grid(column=1, row=0)
         self.newButton = Button(self, text="New Recipe")
         self.editButton = Button(self, text="Edit Recipe", command=self.EditMenu)
 
@@ -155,16 +369,17 @@ class RecipeStationWindow(Toplevel):
 class RecipeStationBox(ttk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
-        self.button = Button(text="Recipe Station", command=self.MakeWindow)
-        self.button.grid(column=4, row=0, rowspan=2)
+        self.button = Button(self, text="Recipe Station", command=self.MakeWindow, anchor=E)
+        self.button.grid(column=0, row=0)
         self.stationStatus = False
         self.recipeStation = None
+        self.grid(column=0, row=1)
 
     def MakeWindow(self):
         if self.stationStatus == False:
             print("Opening recipe station")
             self.stationStatus = True
-            self.recipeStation = RecipeStationWindow(recipeBook=self.master.book)
+            self.recipeStation = RecipeStationWindow(recipeBook=self.master.master.book)
             #self.recipeStation.focus
         else:
             print("Closing recipe station")
@@ -186,8 +401,11 @@ class SearchBox(ttk.Frame):
         self.searchEntryBox = ttk.Entry(self.searchBarFrame, textvariable=self.stringVar)
         self.searchEntryBox.grid(column=0, row = 0)
         
-        self.searchButton = Button(self.searchBarFrame, text="Search", command=self.Search)
+        self.searchButton = Button(self.searchBarFrame, text="Search/Set", command=self.Search)
         self.searchButton.grid(column=1, row=0)
+
+        self.refreshButton = Button(self.searchBarFrame, text="Refresh", command=self.UpdateRecipeBox)
+        self.refreshButton.grid(column=1, row=1)
         
         self.allRecipesBox = ScrolledText(self.master, width=35)
         self.allRecipesBox.grid(column=1, row=0)
@@ -195,11 +413,19 @@ class SearchBox(ttk.Frame):
     
     def Search(self):
         for recipe in self.master.master.master.book.recipes:
-            if recipe.name == self.stringVar.get():
-                print(recipe.name)
+            if recipe.name.lower() == self.stringVar.get().lower():
+                print(recipe.name, "found!")
                 self.master.master.master.activeRecipe = recipe
+                #maybe this can be a toggle \/
+                self.allRecipesBox.config(state='normal')
+                self.allRecipesBox.delete(1.0, END)
+                self.allRecipesBox.insert(INSERT, recipe.name)
+                self.allRecipesBox.insert(INSERT, "\n")
+                self.allRecipesBox.config(state='disabled')
+                ##                          /\
                 self.master.master.master.children['!recipeinfobox'].UpdateInfo()
-                
+            else:
+                self.UpdateRecipeBox()
     
     def UpdateRecipeBox(self):
         self.allRecipesBox.config(state='normal')
@@ -214,34 +440,38 @@ class FileOpBox(ttk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         #self.recipeBook = RecipeBook()
-        self.recipeBook = self.master.book
-        self.openButtonT = Button(text="Open Recipe Book T", command=self.TestOpen)
-        self.openButtonT.grid(column=4, row=2)
-        self.openButton = Button(text="Open Recipe Book(Option placeholder)", command=self.LoadRecipeBook)
-        self.openButton.grid(column=4, row=3)
+        self.recipeBook = self.master.master.book
 
+        self.optionButton = Button(self, text="Option Placeholder", command=self.Options, anchor=E, justify=RIGHT)
+        self.optionButton.grid(column=0, row=1)
+
+        # self.openButton = Label(self, text="Open Recipe Book")
+        # self.openButton.grid(column=0, row=2)
+
+        self.fileName = StringVar(value=RB_FILE)
+        self.fileEntry = Entry(self, textvariable=self.fileName)
+        self.fileEntry.grid(column=0, row=3)
+        
+        self.fileEntryButton = Button(self, text="Open file", command= self.LoadRecipeBook, anchor=E, justify=RIGHT)
+        self.fileEntryButton.grid(column=1, row=3)
+
+        self.grid(column=0, row=2)
+    
     #Should ideally simply load the recipe book and the first recipe
     def LoadRecipeBook(self):
-        self.recipeBook = self.recipeBook.OpenRecipeFile()
+        self.recipeBook = self.recipeBook.OpenRecipeFile(self.fileName.get())
         #ingBox = self.master.children.get('ingredientbox')
         #print(ingBox)
-        recipeLabel = self.master.children['!recipelabel']
-        recipeImg = self.master.children['!imagebox']
-        ingBoxWidget = self.master.children['!ingredientbox']
-        recipeLabel.UpdateLabel(self.recipeBook.recipes[0].name)
-        recipeImg.UpdateImage(self.recipeBook.recipes[0].img)
-        ingBoxWidget.UpdateIngBox(self.recipeBook.recipes[0].ingredients)
+        # recipeLabel = self.master.children['!recipelabel']
+        # recipeImg = self.master.children['!imagebox']
+        # ingBoxWidget = self.master.children['!ingredientbox']
+        # recipeLabel.UpdateLabel(self.recipeBook.recipes[0].name)
+        # recipeImg.UpdateImage(self.recipeBook.recipes[0].img)
+        # ingBoxWidget.UpdateIngBox(self.recipeBook.recipes[0].ingredients)
+
     
-    def TestOpen(self):
-        self.recipeBook = self.recipeBook.OpenRecipeFile()
-        #ingBox = self.master.children.get('ingredientbox')
-        #print(ingBox)
-        recipeLabel = self.master.children['!recipelabel']
-        recipeImg = self.master.children['!imagebox']
-        ingBoxWidget = self.master.children['!ingredientbox']
-        recipeLabel.UpdateLabel(self.recipeBook.recipes[0].name)
-        recipeImg.UpdateImage(self.recipeBook.recipes[0].img)
-        ingBoxWidget.UpdateIngBox(self.recipeBook.recipes[0].ingredients)
+    def Options(self):
+        print("Unimplemented")
 
 class RecipeInfoBox(ttk.Frame):
     def __init__(self, master=None):
@@ -253,6 +483,8 @@ class RecipeInfoBox(ttk.Frame):
         self.imgBox = ImageBox(self)
         self.ingredientBox = IngredientBox(self.infoFrame)
         self.instructionsBox = InstructionsBox(self.infoFrame)
+        self.prepTimeBox = PrepTimeBox(self.infoFrame)
+        self.cookTimeBox = CookTimeBox(self.infoFrame)
         self.tagsBox = TagsBox(self.infoFrame)
 
         self.recipeName.recipeLabel.config(bg="#929fb0")
@@ -267,7 +499,9 @@ class RecipeInfoBox(ttk.Frame):
         self.recipeName.grid(column=0, row=1)
         self.ingredientBox.grid(column=0, row=2)
         self.instructionsBox.grid(column=0, row=3)
-        self.tagsBox.grid(column=0, row=4)
+        self.prepTimeBox.grid(column=0, row=4)
+        self.cookTimeBox.grid(column=0, row=5)
+        self.tagsBox.grid(column=0, row=6)
         #self.activeRecipe = self.master.activeRecipe
 
 
@@ -276,6 +510,8 @@ class RecipeInfoBox(ttk.Frame):
         self.imgBox.UpdateImage(self.recipeBook.recipes[0].img)
         self.ingredientBox.UpdateIngBox(self.recipeBook.recipes[0].ingredients)
         self.instructionsBox.UpdateInsBox(self.recipeBook.recipes[0].instructions)
+        self.prepTimeBox.UpdatePrepBox(self.recipeBook.recipes[0].prepTime)
+        self.cookTimeBox.UpdateCookBox(self.recipeBook.recipes[0].cookTime)
         self.tagsBox.UpdateTagsBox(self.recipeBook.recipes[0].tags)
 
     def UpdateInfo(self):
@@ -285,7 +521,31 @@ class RecipeInfoBox(ttk.Frame):
         self.imgBox.UpdateImage(self.activeRecipe.img)
         self.ingredientBox.UpdateIngBox(self.activeRecipe.ingredients)
         self.instructionsBox.UpdateInsBox(self.activeRecipe.instructions)
+        self.prepTimeBox.UpdatePrepBox(self.activeRecipe.prepTime)
+        self.cookTimeBox.UpdateCookBox(self.activeRecipe.cookTime)
         self.tagsBox.UpdateTagsBox(self.activeRecipe.tags)
+
+class PrepTimeBox(ttk.Frame):
+    def __init__(self, master = None):
+        super().__init__(master)
+        self.boxText = StringVar()
+        self.boxText.set(" ")
+        self.prepTimeLabel = Label(self, textvariable=self.boxText, justify=LEFT)
+        self.prepTimeLabel.grid(column=0, row=0)
+        
+    def UpdatePrepBox(self, ptime):
+        self.boxText.set("Prep time: " + ptime)
+
+class CookTimeBox(ttk.Frame):
+    def __init__(self, master = None):
+        super().__init__(master)
+        self.boxText = StringVar()
+        self.boxText.set(" ")
+        self.prepTimeLabel = Label(self, textvariable=self.boxText, justify=LEFT)
+        self.prepTimeLabel.grid(column=0, row=0)
+        
+    def UpdateCookBox(self, ctime):
+        self.boxText.set("Cook time: " + ctime)
 
 class InstructionsBox(ttk.Frame):
     def __init__(self, master = None):
@@ -393,6 +653,25 @@ class IngredientSearchBox(ttk.Frame):
             self.buttonIndex += 1
         #print("controlvar after all ingredient buttons made:", self.controlVar.get())
 
+    def UpdateButtons(self):
+        self.ingredients =  self.master.master.master.book.GetAllIngredients()
+        for ing in self.ingredients:
+            if ing not in self.buttonStates:
+                self.buttonStates[ing] = False
+                cvar = StringVar()#--
+                cvar.set("_"+ing)#--
+                button = Checkbutton(self.canvas, text=ing, justify=LEFT, bg='#A73337', activebackground='#773337',
+                                                        variable=cvar, onvalue=ing, offvalue="_"+ing)
+                self.canvas.create_window(4, 25 * self.buttonIndex, window=button, anchor=W, height=20) 
+                button.bind("<Configure>", lambda event, canvas = self.canvas : self.event_onFrameConfigure(canvas))
+
+                self.lastSelect.set(cvar.get())
+                self.controlVars[ing] = cvar
+                #Implementation from https://stackoverflow.com/questions/6920302/how-to-pass-arguments-to-a-button-command-in-tkinter Dologan
+                partialFunction = partial(self.AddToSearch, cvar.get())
+                button.config(command=partialFunction)
+                self.buttonArray.append(button)
+                self.buttonIndex += 1
 
     def MakeScrollBar(self):
         
@@ -409,14 +688,6 @@ class IngredientSearchBox(ttk.Frame):
     
     def Search(self):
         print(self.searchIngredients)
-        # rb = RecipeBook()
-        # rb.recipes.append(CreateTestRecipe())
-        # testR = Recipe("Spaghetti")
-        # testR.ingredients = ["eggs", "flour", "water", "oil", "crushed tomatoes", "garlic"]
-        # testR.img = "spaghetti.png"
-        # rb.recipes.append(testR)
-        # rb.SaveRecipeFile()
-        # rb.OpenRecipeFile()
         rb = self.master.master.master.book
         canMake, canNearlyMake = rb.MatchRecipe(self.searchIngredients)
         print("canMake var is:", canMake)
@@ -509,8 +780,9 @@ class ImageBox(ttk.Frame):
         #self.imgTkVar = ImageTk.PhotoImage(self.resizedImg)
         openImgVar.thumbnail((400,400))
         self.imgTkVar = ImageTk.PhotoImage(openImgVar)
-        self.img = Label(master, image=self.imgTkVar)
+        self.img = Label(self, image=self.imgTkVar)
         self.img.grid(column=0, row=0)
+        self.grid(column=1, row=1)
 
         #self.resizedImg.load()
         #self.imgVar = PhotoImage(file=self.imgPath.get(), width=400, height=400)
@@ -522,8 +794,12 @@ class ImageBox(ttk.Frame):
     
     def UpdateImage(self, imgPath):
         self.imgPath.set(imgPath)
+        try:
+            openImgVar = PilImage.open(self.imgPath.get())
+        except FileNotFoundError:
+            print("Recipe image not found. Using default")
+            openImgVar = PilImage.open(DEFAULT_IMG_PATH)
 
-        openImgVar = PilImage.open(self.imgPath.get())
         #self.resizedImg = openImgVar.resize((400,400))
         #self.imgTkVar = ImageTk.PhotoImage(self.resizedImg)
         openImgVar.thumbnail((400,400))
@@ -553,30 +829,16 @@ class RecipeLabel(ttk.Frame):
         self.recipeName.set(name)
 
 class MainWindow(ttk.Frame):
-    '''
-    def __init__(self, title):
-        self.root = Tk()
-        self.frame = ttk.Frame(self.root, padding=10)
-        self.frame.master.title(title)
-        self.frame.grid()
-        #self.root.mainloop()
-    '''
-    #class AppWindow(ttk.Frame)
-    
     def __init__(self, master=None, title = "New Window", *args, **kwargs):
-        #self, parent, *args, **kwargs
-        #
         super().__init__(master)
-
         self.config(border='15', width='800', height='600')
-        self.master.minsize(800,600)
+        self.master.minsize(800,400)
         self.master.title("Recipe Book")
         self.book = RecipeBook()
-        self.book = self.book.OpenRecipeFile()
+        self.book = self.book.OpenRecipeFile(RB_FILE)
         #Default recipe is first in list
         self.activeRecipe = self.book.recipes[0]
-        self.book.GetAllIngredients()
-        #ttk.Frame.__init__(self, parent, *args, **kwargs)
+        #self.book.GetAllIngredients()
         self.grid()
 
         ##Widget classes below
@@ -585,23 +847,17 @@ class MainWindow(ttk.Frame):
         #self.ingBox = IngredientBox(master=self)
         #self.searchBox = SearchBox(master=self)
         #self.ingSearchBox = IngredientSearchBox(master=self)
-        self.fileBox = FileOpBox(master=self)
         #print("after widget made:", self.ingSearchBox.controlVar.get())
         #self.recipeBox = RecipeLabel(master=self)
+
+        self.sideButtonsFrame = Frame(master=self)
+        self.sideButtonsFrame.grid(column=4, row=1)
+        self.fileBox = FileOpBox(master=self.sideButtonsFrame)
         self.searchTabs = SearchTabs(master=self)
-        self.recipeInfoBox = RecipeInfoBox(master=self)  # <----WIP
-        self.recipeStation = RecipeStationBox(master=self)                     
-
-        #self.testBox = TestBox(master=self)
-
-        #Scrollbar implementation
-        #self.scrollbar = Scrollbar(self, orient=VERTICAL).grid(column=5, row=0, sticky=NS)
-        
+        self.recipeInfoBox = RecipeInfoBox(master=self)
+        self.recipeStation = RecipeStationBox(master = self.sideButtonsFrame)
         
         self.mainloop()
-    
-    def ChangeSlide(self):
-        print("Ba")
             
 def CreateTestRecipe():
     recipe = Recipe("Peanut butter and jelly sandwich")
@@ -611,8 +867,8 @@ def CreateTestRecipe():
     recipe.img = "pbj.png"
     recipe.instructions = "Grab two slices of bread. On one slice, slather peanut butter on a single side. On the other slide, " + \
      "slather jelly onto a single side. Place the sides together so that the peanut butter and jelly touch"
-    recipe.cookTime = 0
-    recipe.prepTime = 1.0
+    recipe.cookTime = "0 minutes"
+    recipe.prepTime = "2 minutes"
     recipe.tags += ["sandwich", "simple"]
     return recipe
 
@@ -626,8 +882,8 @@ def CreateTestRecipe2():
     recipe.ingredients.append("basil")
     recipe.img = "spaghetti.png"
     recipe.instructions = "Do this and that"
-    recipe.cookTime = 15
-    recipe.prepTime = 60.0
+    recipe.cookTime = "15 minutes"
+    recipe.prepTime = "1 hour"
     recipe.tags += ["starch", "italian", "pasta"]
     return recipe
 
@@ -637,8 +893,8 @@ class Recipe:
         self.ingredients = []
         self.img = None
         self.tags = []
-        self.prepTime = 0.0
-        self.cookTime = 0.0
+        self.prepTime = ""
+        self.cookTime = ""
         self.instructions = ""
 
 class RecipeBook(object):
@@ -664,20 +920,6 @@ class RecipeBook(object):
         root = tkinter.Tk()
         window = MainWindow(master=root, title="Recipe Book")
         root.mainloop()
-        
-        #ttk.Label(window.frame, text="Test Label").grid(column=0, row=0)
-        #ttk.Button(window.frame, text = "Quit", command=window.root.destroy).grid(column=1, row=0)
-        #image
-        #img = PhotoImage(file="salad.png")
-        #ttk.Label(window.frame, image=img)
-        #ttk.Button(window.frame, text="image here").grid(column=0, row=1)
-        #title of recipe
-        #Ingredients
-        #
-        
-        #window = AppWindow(title="Recipe Book")
-        #window.
-        #window.Label(text="test").grid(column=0, row=0)
 
     def AddRecipe(recipe):
         print("Unimplemented")
@@ -719,11 +961,11 @@ class RecipeBook(object):
     def SearchRecipe(target):
         print("Unimplemented")
 
-    def OpenRecipeFile(self):
+    def OpenRecipeFile(self, fileName):
         #Change to not return but add all of this to self
-        print("OpenRecipeFile called")
+        print("Opening recipe file:", fileName)
         try:
-            file = open(RB_FILE, mode='r')
+            file = open(fileName, mode='r')
             readIn = file.read()
             bookDict = json.loads(readIn)
             decodedBook = RecipeBookDecoder(bookDict)
@@ -733,7 +975,19 @@ class RecipeBook(object):
             return decodedBook
             
         except FileNotFoundError:
-            print("Something went wrong attempting to read RecipeBook file.")
+            try:
+                print("Failed to open given name. Opening default file: ", RB_FILE)
+                file = open(RB_FILE, mode='r')
+                readIn = file.read()
+                bookDict = json.loads(readIn)
+                decodedBook = RecipeBookDecoder(bookDict)
+                return decodedBook
+
+            except FileNotFoundError:
+                print("Failed to find default file. Please place", RB_FILE, "in root directory")
+            finally:
+                file.close()
+                
         #except:
         #    print("Something went wrong decoding file")
         finally:
@@ -754,7 +1008,7 @@ class RecipeBook(object):
         allAvailableIngredients = []
         for recipe in self.recipes:
             allAvailableIngredients += recipe.ingredients
-        print("All available ingredients:", allAvailableIngredients)
+        #print("All available ingredients:", allAvailableIngredients)
         return allAvailableIngredients
         # try:
         #     file = open(ING_FILE, mode='+w')
@@ -779,8 +1033,8 @@ def RecipeBookDecoder(obj):
         r = Recipe("test")
         r.name = recipe['name']
         r.img = recipe['img']
-        r.prepTime = float(recipe['prepTime'])
-        r.cookTime = float(recipe['cookTime'])
+        r.prepTime = recipe['prepTime']
+        r.cookTime = recipe['cookTime']
         r.instructions = recipe['instructions']
 
         r.ingredients = []
@@ -794,22 +1048,28 @@ def RecipeBookDecoder(obj):
     #print(book)
     return book
 
+def CreateWindow():
+        root = tkinter.Tk()
+        window = MainWindow(master=root, title="Recipe Book")
+        root.mainloop()
+
 def GetRecipeBookObj():
     "Gets reference to the book object from the tk widget hierarchy"
     print("unimplemented")
 
+def TkHierarchyFinder(tkinterobj):
+    while(tkinterobj != None):
+        print(tkinterobj.winfo_name)
+        tkinterobj = tkinterobj.master
+
 overlay = None #Overlay for images
 
 def main():
-    book = RecipeBook()
-    book.recipes += [CreateTestRecipe()]
-    book.recipes += [CreateTestRecipe2()]
-    #print(book)
-    book.SaveRecipeFile()
-    #book.MatchRecipe(ingList=["flour", "eggs", "water", "oil", "garlic", "bread", "peanut butter", "fruit jelly", "crushed tomatoes"])
-    book.CreateWindow()
-    
-    #book.OpenRecipeFile()
-    
+    # book = RecipeBook()
+    # book.recipes += [CreateTestRecipe()]
+    # book.recipes += [CreateTestRecipe2()]
+    # book.SaveRecipeFile()
+    #book.CreateWindow()
+    CreateWindow()
 
 main()
